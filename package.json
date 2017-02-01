@@ -3,6 +3,7 @@
   "version": "0.3.6",
   "description": "Content Slider for Mithril on mobile and desktop",
   "main": "lib/mithril-slider.js",
+  "jsnext:main": "lib/mithril-slider.es6",
   "scripts": {
     "transpile": "node scripts/transpile.js once lib node_modules",
     "watch": "node scripts/transpile.js watch lib node_modules",
