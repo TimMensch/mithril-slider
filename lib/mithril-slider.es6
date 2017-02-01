@@ -36,7 +36,7 @@ const createView = (ctrl, opts) => {
             };
         }
     },
-    ctrl.list().map((data, listIndex) => {
+    ctrl.list.map((data, listIndex) => {
         return opts.page({
             data: data,
             listIndex: listIndex,
@@ -52,8 +52,10 @@ const slider = {};
 slider.controller = (opts = {}) => {
     const defaultDuration = parseInt(opts.duration, 10) || 160;
     const index = m.prop(opts.index || -1);
-    const list = opts.pageData();
-    list.then(() => m.redraw());
+    const listQuery = opts.pageData();
+    let list = [];
+    listQuery.then((listData) => { list = listQuery; m.redraw(); });
+
     const contentEl = m.prop();
     let pageSize = 0;
     const groupBy = m.prop(opts.groupBy || 1);
@@ -98,7 +100,7 @@ slider.controller = (opts = {}) => {
     };
 
     const goTo = (idx, duration) => {
-        if (idx < 0 || idx > list().length - 1) {
+        if (idx < 0 || idx > list.length - 1) {
             return;
         }
         if (duration !== undefined) {
@@ -112,7 +114,7 @@ slider.controller = (opts = {}) => {
         const idx = index();
         const size = groupBy();
         const min = 0;
-        const max = list().length;
+        const max = list.length;
         const next = idx + (orientation * size);
         // make sure that last item aligns at the right
         if ((next + size) > max) {
@@ -128,7 +130,7 @@ slider.controller = (opts = {}) => {
         const page = el.childNodes[0];
         const prop = isVertical ? 'height' : 'width';
         pageSize = page.getBoundingClientRect()[prop];
-        el.style[prop] = (list().length * pageSize) + 'px';
+        el.style[prop] = (list.length * pageSize) + 'px';
     };
 
     const goCurrent = (duration = 0) => {
@@ -139,7 +141,7 @@ slider.controller = (opts = {}) => {
 
     const goNext = (duration = defaultDuration) => (
         setTransitionDurationStyle(duration),
-        index() < list().length ? goTo(normalizedStep(1)) : goTo(normalizedStep(0))
+        index() < list.length ? goTo(normalizedStep(1)) : goTo(normalizedStep(0))
     );
 
     const goPrevious = (duration = defaultDuration) => (
@@ -147,7 +149,7 @@ slider.controller = (opts = {}) => {
         index() > 0 ? goTo(normalizedStep(-1)) : goTo(normalizedStep(0))
     );
 
-    const hasNext = () => index() + groupBy() < list().length;
+    const hasNext = () => index() + groupBy() < list.length;
 
     const hasPrevious = () => index() > 0;
 
