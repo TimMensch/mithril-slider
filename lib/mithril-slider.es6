@@ -53,8 +53,8 @@ slider.controller = (opts = {}) => {
     const defaultDuration = parseInt(opts.duration, 10) || 160;
     const index = m.prop(opts.index || -1);
     const listQuery = opts.pageData();
-    let list = [];
-    listQuery.then((listData) => { list = listQuery; m.redraw(); });
+    const list = [];
+    listQuery.then((listData) => { list.splice(0,0,listData) ; m.redraw(); });
 
     const contentEl = m.prop();
     let pageSize = 0;
