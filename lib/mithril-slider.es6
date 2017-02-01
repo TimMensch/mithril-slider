@@ -10,7 +10,7 @@ const createView = (ctrl, opts) => {
         ctrl.updateContentSize(contentEl);
     }
     return m('div', {
-        class: ['slider', opts.class || ''].join(' ')
+        class: [ 'slider', opts.class || '' ].join(' ')
     }, opts.before ? m('.before', opts.before) : null, m('.content', {
         config: (el, inited, context) => {
             if (inited) {
@@ -36,15 +36,15 @@ const createView = (ctrl, opts) => {
             };
         }
     },
-    ctrl.list.map((data, listIndex) => {
-        return opts.page({
-            data: data,
-            listIndex: listIndex,
-            currentIndex: currentIndex
-        });
-    })
+        ctrl.list.map((data, listIndex) => {
+            return opts.page({
+                data: data,
+                listIndex: listIndex,
+                currentIndex: currentIndex
+            });
+        })
     ),
-    opts.after ? m('.after', opts.after) : null);
+        opts.after ? m('.after', opts.after) : null);
 };
 
 const slider = {};
@@ -54,7 +54,10 @@ slider.controller = (opts = {}) => {
     const index = m.prop(opts.index || -1);
     const listQuery = opts.pageData();
     const list = [];
-    listQuery.then((listData) => { list.splice(0,0,listData) ; m.redraw(); });
+    listQuery.then((listData) => {
+        list.splice(0, 0, ...listData);
+        m.redraw();
+    });
 
     const contentEl = m.prop();
     let pageSize = 0;
@@ -81,7 +84,7 @@ slider.controller = (opts = {}) => {
         }
     };
 
-    const getPageEl = (el, idx) => el.childNodes[idx];
+    const getPageEl = (el, idx) => el.childNodes[ idx ];
 
     const setTransitionStyle = (el, value) => {
         const style = el.style;
@@ -89,14 +92,14 @@ slider.controller = (opts = {}) => {
             const x = isVertical ? '0' : value + 'px';
             const y = isVertical ? value + 'px' : '0';
             const z = '0';
-            const attrs = [x, y, z].join(', ');
+            const attrs = [ x, y, z ].join(', ');
             return 'translate3d(' + attrs + ')';
         };
-        style.transform = style['-webkit-transform'] = style['-moz-transform'] = style['-ms-transform'] = createAttrs();
+        style.transform = style[ '-webkit-transform' ] = style[ '-moz-transform' ] = style[ '-ms-transform' ] = createAttrs();
     };
 
     const setTransitionDurationStyle = (duration) => {
-        contentEl().style['-webkit-transition-duration'] = contentEl().style['transition-duration'] = duration + 'ms';
+        contentEl().style[ '-webkit-transition-duration' ] = contentEl().style[ 'transition-duration' ] = duration + 'ms';
     };
 
     const goTo = (idx, duration) => {
@@ -127,10 +130,12 @@ slider.controller = (opts = {}) => {
     };
 
     const updateContentSize = (el) => {
-        const page = el.childNodes[0];
-        const prop = isVertical ? 'height' : 'width';
-        pageSize = page.getBoundingClientRect()[prop];
-        el.style[prop] = (list.length * pageSize) + 'px';
+        if (el.childNodes.length > 0) {
+            const page = el.childNodes[ 0 ];
+            const prop = isVertical ? 'height' : 'width';
+            pageSize = page.getBoundingClientRect()[ prop ];
+            el.style[ prop ] = (list.length * pageSize) + 'px';
+        }
     };
 
     const goCurrent = (duration = 0) => {
@@ -155,8 +160,10 @@ slider.controller = (opts = {}) => {
 
     const setContentEl = (el) => {
         contentEl(el);
-        updateContentSize(el);
-        goCurrent(0);
+        if (list.length > 0) {
+            updateContentSize(el);
+            goCurrent(0);
+        }
     };
 
     const handleDragStart = () => (setTransitionDurationStyle(0));
