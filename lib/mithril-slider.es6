@@ -6,7 +6,6 @@ const createView = (ctrl, opts) => {
     const currentIndex = ctrl.index();
     // sizes need to be set each redraw because of screen resizes
     ctrl.groupBy(opts.groupBy || 1);
-    ctrl.offsetBase = null;
 
     if (contentEl) {
         ctrl.updateContentSize(contentEl);
@@ -63,8 +62,9 @@ slider.controller = (opts = {}) => {
     const isVertical = opts.orientation === 'vertical';
     const dir = opts.rtl ? -1 : 1;
     const reduceLength = opts.reduceLength || null;
+    const centerIndex = opts.centerIndex || null;
 
-    let offsetBase = null;
+    let containerWidth = null;
 
     const setIndex = (idx) => {
         const oldIndex = index();
@@ -114,7 +114,23 @@ slider.controller = (opts = {}) => {
     const setTransitionDurationStyle = (duration) => {
         contentEl().style[ '-webkit-transition-duration' ] = contentEl().style[ 'transition-duration' ] = duration + 'ms';
     };
-
+    const getOffset = (el,idx) => {
+        if (centerIndex !== null) {
+            const pageToCenter = el.children[ idx + centerIndex ];
+            if (pageToCenter) {
+                if (containerWidth === null) {
+                    const container = contentEl().parentElement;
+                    if (container) {
+                        containerWidth = container.clientWidth;
+                    }
+                }
+                if (containerWidth) {
+                    return (containerWidth / 2 - pageToCenter.clientWidth / 2) - pageToCenter.offsetLeft;
+                }
+            }
+        }
+        return -dir * idx * pageSize;
+    }
     const goTo = (idx, duration) => {
         if (idx < 0 || idx > getLength() - 1) {
             return;
@@ -122,7 +138,9 @@ slider.controller = (opts = {}) => {
         if (duration !== undefined) {
             setTransitionDurationStyle(duration);
         }
-        setTransitionStyle(contentEl(), -dir * idx * pageSize);
+        const el = contentEl();
+        let newOffset = getOffset(el,idx);
+        setTransitionStyle(el, newOffset);
         setIndex(idx);
     };
 
@@ -185,17 +203,12 @@ slider.controller = (opts = {}) => {
         const el = contentEl();
         const page = getPageEl(el, index());
         const delta = isVertical ? e.deltaY : e.deltaX;
-        const origin = isVertical
-            ? page.offsetTop
-            : (dir === -1) ? (page.offsetLeft - page.parentNode.clientWidth + page.clientWidth) : page.offsetLeft;
+        // const origin = isVertical
+        //     ? page.offsetTop
+        //     : (dir === -1) ? (page.offsetLeft - page.parentNode.clientWidth + page.clientWidth) : page.offsetLeft;
 
-        if (offsetBase === null) {
-            const first = getPageEl(el, 0);
-            offsetBase = isVertical
-                ? first.offsetTop
-                : (dir === -1) ? (first.offsetLeft - first.parentNode.clientWidth + first.clientWidth) : first.offsetLeft;
-        }
-        setTransitionStyle(el, delta-origin+offsetBase);
+        const origin = getOffset(el,index());
+        setTransitionStyle(el, delta + origin);
         e.preventDefault();
     };
 
@@ -241,7 +254,6 @@ slider.controller = (opts = {}) => {
         handleDragEnd,
         groupBy,
         updateContentSize,
-        offsetBase,
 
         // public interface
         index,
