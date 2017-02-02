@@ -6,6 +6,8 @@ const createView = (ctrl, opts) => {
     const currentIndex = ctrl.index();
     // sizes need to be set each redraw because of screen resizes
     ctrl.groupBy(opts.groupBy || 1);
+    ctrl.offsetBase = null;
+
     if (contentEl) {
         ctrl.updateContentSize(contentEl);
     }
@@ -54,17 +56,14 @@ slider.controller = (opts = {}) => {
     const index = m.prop(opts.index || -1);
     const listQuery = opts.pageData();
     const list = [];
-    listQuery.then((listData) => {
-        list.splice(0, 0, ...listData);
-        m.redraw();
-    });
-
     const contentEl = m.prop();
     let pageSize = 0;
     const groupBy = m.prop(opts.groupBy || 1);
     const cancelDragFactor = opts.cancelDragFactor || (1 / 5);
     const isVertical = opts.orientation === 'vertical';
     const dir = opts.rtl ? -1 : 1;
+
+    let offsetBase = null;
 
     const setIndex = (idx) => {
         const oldIndex = index();
@@ -83,6 +82,14 @@ slider.controller = (opts = {}) => {
             }
         }
     };
+
+    listQuery.then((listData) => {
+        list.splice(0, 0, ...listData);
+        if (index() < 0) {
+            setIndex(0);
+        }
+        m.redraw();
+    });
 
     const getPageEl = (el, idx) => el.childNodes[ idx ];
 
@@ -175,7 +182,14 @@ slider.controller = (opts = {}) => {
         const origin = isVertical
             ? page.offsetTop
             : (dir === -1) ? (page.offsetLeft - page.parentNode.clientWidth + page.clientWidth) : page.offsetLeft;
-        setTransitionStyle(el, delta - origin);
+
+        if (offsetBase === null) {
+            const first = getPageEl(el, 0);
+            offsetBase = isVertical
+                ? first.offsetTop
+                : (dir === -1) ? (first.offsetLeft - first.parentNode.clientWidth + first.clientWidth) : first.offsetLeft;
+        }
+        setTransitionStyle(el, delta-origin+offsetBase);
         e.preventDefault();
     };
 
@@ -215,6 +229,7 @@ slider.controller = (opts = {}) => {
         handleDragEnd,
         groupBy,
         updateContentSize,
+        offsetBase,
 
         // public interface
         index,
