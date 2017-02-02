@@ -2,6 +2,7 @@
 
 Handles series of pageable content. This code is a Mithril component wrapper around [HammerJS](http://hammerjs.github.io/), with additional features.
 
+**This repo tweaked by Tim Mensch to support carousel behavior and "dead" entries.**
 
 ## Examples
 
@@ -93,6 +94,59 @@ const createPage = (opts) => {
 ~~~
 
 This function will be called for all list items.
+
+### Carousel behavior
+
+To make it work like a carousel that displays a number of frames, you'll need to
+tweak the CSS so that more than one frame is shown, and then set `centerIndex` to
+the relative index of the item you want to center. So if you want to show three items,
+you set `centerIndex` to 1; if you want to show five items, set it to 2. Whatever index
+you select, that item should be centered.
+
+~~~javascript
+ m.component(slider, {
+            pageData: ...,
+            page: ...,
+            centerIndex: 1
+        });
+~~~
+
+### Dead items
+
+If you want there to be extra items at the start and/or end that can't be selected,
+set `reduceLength` to the number of dead items. Tested for 2, where the first and
+last items can't be selected as the "center" item in a scroller.
+
+Useful if you need a carousel that allows every possible item to be centered (selected).
+You need to actually add extra "dead" items to the pageData array.
+
+~~~javascript
+ m.component(slider, {
+            pageData: ...,
+            page: ...,
+            centerIndex: 1,
+            reduceLength: 2
+        });
+~~~
+
+Your createPage function will need to be modified if you want "dead" items there. For simplicity
+I just put "null" in the slots where I want a dead item; if you do that, you can use code
+that looks like this:
+
+~~~javascript
+const createPage = (opts) => {
+	const data = opts.data;
+    if (data === null) {
+        return m("div.image.hidden"); // Use styles that make the div invisible, if necessary
+    }
+    // Normal page generation here
+    return m('.page', {
+		style: {
+			'background-image': 'url(' + data + ')'
+		}
+    });
+};
+~~~
 
 
 ### Optimizing with lazy loading
