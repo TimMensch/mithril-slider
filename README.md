@@ -2,7 +2,7 @@
 
 Handles series of pageable content. This code is a Mithril component wrapper around [HammerJS](http://hammerjs.github.io/), with additional features.
 
-**This repo tweaked by Tim Mensch to support carousel behavior and "dead" entries.**
+**This repo tweaked by Tim Mensch to support Promises, carousel behavior and "dead" entries.**
 
 ## Examples
 
