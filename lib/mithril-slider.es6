@@ -62,6 +62,7 @@ slider.controller = (opts = {}) => {
     const cancelDragFactor = opts.cancelDragFactor || (1 / 5);
     const isVertical = opts.orientation === 'vertical';
     const dir = opts.rtl ? -1 : 1;
+    const reduceLength = opts.reduceLength || null;
 
     let offsetBase = null;
 
@@ -93,6 +94,11 @@ slider.controller = (opts = {}) => {
 
     const getPageEl = (el, idx) => el.childNodes[ idx ];
 
+    const getLength = () => {
+        if (reduceLength === null) return list.length;
+        return list.length - reduceLength;
+    }
+
     const setTransitionStyle = (el, value) => {
         const style = el.style;
         const createAttrs = () => {
@@ -110,7 +116,7 @@ slider.controller = (opts = {}) => {
     };
 
     const goTo = (idx, duration) => {
-        if (idx < 0 || idx > list.length - 1) {
+        if (idx < 0 || idx > getLength() - 1) {
             return;
         }
         if (duration !== undefined) {
@@ -124,7 +130,7 @@ slider.controller = (opts = {}) => {
         const idx = index();
         const size = groupBy();
         const min = 0;
-        const max = list.length;
+        const max = getLength();
         const next = idx + (orientation * size);
         // make sure that last item aligns at the right
         if ((next + size) > max) {
@@ -153,7 +159,7 @@ slider.controller = (opts = {}) => {
 
     const goNext = (duration = defaultDuration) => (
         setTransitionDurationStyle(duration),
-        index() < list.length ? goTo(normalizedStep(1)) : goTo(normalizedStep(0))
+        index() < getLength() ? goTo(normalizedStep(1)) : goTo(normalizedStep(0))
     );
 
     const goPrevious = (duration = defaultDuration) => (
@@ -161,7 +167,7 @@ slider.controller = (opts = {}) => {
         index() > 0 ? goTo(normalizedStep(-1)) : goTo(normalizedStep(0))
     );
 
-    const hasNext = () => index() + groupBy() < list.length;
+    const hasNext = () => index() + groupBy() < getLength();
 
     const hasPrevious = () => index() > 0;
 
@@ -207,12 +213,18 @@ slider.controller = (opts = {}) => {
 
     const handleDragEnd = (e) => {
         const duration = calculateTransitionDuration(e.velocity);
-        const delta = isVertical ? e.deltaY : e.deltaX;
+        let delta = isVertical ? e.deltaY : e.deltaX;
         if (Math.abs(delta) > pageSize * groupBy() * cancelDragFactor) {
             if (dir * delta < 0) {
-                goNext(duration);
+                while ((dir * delta) < 0) {
+                    goNext(duration);
+                    delta += dir * pageSize * groupBy();
+                }
             } else {
-                goPrevious(duration);
+                while ((dir * delta) > 0) {
+                    goPrevious(duration);
+                    delta -= dir * pageSize * groupBy();
+                }
             }
         } else {
             goCurrent(duration);
