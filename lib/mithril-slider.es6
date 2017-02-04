@@ -4,6 +4,10 @@ import Hammer from 'hammerjs';
 const createView = (ctrl, opts) => {
     const contentEl = ctrl.contentEl();
     const currentIndex = ctrl.index();
+
+    // Reset container width
+    ctrl.containerWidth(null);
+
     // sizes need to be set each redraw because of screen resizes
     ctrl.groupBy(opts.groupBy || 1);
 
@@ -64,7 +68,7 @@ slider.controller = (opts = {}) => {
     const reduceLength = opts.reduceLength || null;
     const centerIndex = opts.centerIndex || null;
 
-    let containerWidth = null;
+    let containerWidth = m.prop(null);
 
     const setIndex = (idx) => {
         const oldIndex = index();
@@ -118,14 +122,14 @@ slider.controller = (opts = {}) => {
         if (centerIndex !== null) {
             const pageToCenter = el.children[ idx + centerIndex ];
             if (pageToCenter) {
-                if (containerWidth === null) {
+                if (containerWidth() === null) {
                     const container = contentEl().parentElement;
                     if (container) {
-                        containerWidth = container.clientWidth;
+                        containerWidth( container.clientWidth );
                     }
                 }
-                if (containerWidth) {
-                    return (containerWidth / 2 - pageToCenter.clientWidth / 2) - pageToCenter.offsetLeft;
+                if (containerWidth()) {
+                    return (containerWidth() / 2 - pageToCenter.offsetWidth / 2) - pageToCenter.offsetLeft;
                 }
             }
         }
@@ -203,10 +207,6 @@ slider.controller = (opts = {}) => {
         const el = contentEl();
         const page = getPageEl(el, index());
         const delta = isVertical ? e.deltaY : e.deltaX;
-        // const origin = isVertical
-        //     ? page.offsetTop
-        //     : (dir === -1) ? (page.offsetLeft - page.parentNode.clientWidth + page.clientWidth) : page.offsetLeft;
-
         const origin = getOffset(el,index());
         setTransitionStyle(el, delta + origin);
         e.preventDefault();
@@ -254,6 +254,7 @@ slider.controller = (opts = {}) => {
         handleDragEnd,
         groupBy,
         updateContentSize,
+        containerWidth,
 
         // public interface
         index,
