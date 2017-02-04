@@ -118,14 +118,14 @@ slider.controller = (opts = {}) => {
     const setTransitionDurationStyle = (duration) => {
         contentEl().style[ '-webkit-transition-duration' ] = contentEl().style[ 'transition-duration' ] = duration + 'ms';
     };
-    const getOffset = (el,idx) => {
+    const getOffset = (el, idx) => {
         if (centerIndex !== null) {
             const pageToCenter = el.children[ idx + centerIndex ];
             if (pageToCenter) {
                 if (containerWidth() === null) {
                     const container = contentEl().parentElement;
                     if (container) {
-                        containerWidth( container.clientWidth );
+                        containerWidth(container.clientWidth);
                     }
                 }
                 if (containerWidth()) {
@@ -143,7 +143,7 @@ slider.controller = (opts = {}) => {
             setTransitionDurationStyle(duration);
         }
         const el = contentEl();
-        let newOffset = getOffset(el,idx);
+        let newOffset = getOffset(el, idx);
         setTransitionStyle(el, newOffset);
         setIndex(idx);
     };
@@ -195,9 +195,13 @@ slider.controller = (opts = {}) => {
 
     const setContentEl = (el) => {
         contentEl(el);
-        if (list.length > 0) {
+        if (el.children.length > 0) {
             updateContentSize(el);
             goCurrent(0);
+        } else {
+            setTimeout(() => {
+                setContentEl(el);
+            }, 100);
         }
     };
 
@@ -207,7 +211,7 @@ slider.controller = (opts = {}) => {
         const el = contentEl();
         const page = getPageEl(el, index());
         const delta = isVertical ? e.deltaY : e.deltaX;
-        const origin = getOffset(el,index());
+        const origin = getOffset(el, index());
         setTransitionStyle(el, delta + origin);
         e.preventDefault();
     };
