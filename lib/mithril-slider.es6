@@ -19,6 +19,10 @@ const createView = (ctrl, opts) => {
     }, opts.before ? m('.before', opts.before) : null, m('.content', {
         config: (el, inited, context) => {
             if (inited) {
+                if (ctrl.rescaleRequired()) {
+                    ctrl.goCurrent();
+                    ctrl.rescaleRequired(false);
+                }
                 return;
             }
             ctrl.setContentEl(el);
@@ -66,8 +70,9 @@ slider.controller = (opts = {}) => {
     const isVertical = opts.orientation === 'vertical';
     const dir = opts.rtl ? -1 : 1;
     const reduceLength = opts.reduceLength || null;
-    const centerIndex = opts.centerIndex || null;
+    const centerCurrent = opts.centerCurrent || false;
 
+    let rescaleRequired = m.prop(false);
     let containerWidth = m.prop(null);
 
     const setIndex = (idx) => {
@@ -91,7 +96,7 @@ slider.controller = (opts = {}) => {
     listQuery.then((listData) => {
         list.splice(0, 0, ...listData);
         if (index() < 0) {
-            setIndex(0);
+            goTo(0,0);
         }
         m.redraw();
     });
@@ -118,20 +123,21 @@ slider.controller = (opts = {}) => {
     const setTransitionDurationStyle = (duration) => {
         contentEl().style[ '-webkit-transition-duration' ] = contentEl().style[ 'transition-duration' ] = duration + 'ms';
     };
-    const getOffset = (el, idx) => {
-        if (centerIndex !== null) {
-            const pageToCenter = el.children[ idx + centerIndex ];
+    const getOffset = (el,idx) => {
+        if (centerCurrent && idx>=0) {
+            const pageToCenter = el.children[ idx ];
             if (pageToCenter) {
                 if (containerWidth() === null) {
                     const container = contentEl().parentElement;
                     if (container) {
-                        containerWidth(container.clientWidth);
+                        containerWidth( container.clientWidth );
                     }
                 }
                 if (containerWidth()) {
                     return (containerWidth() / 2 - pageToCenter.offsetWidth / 2) - pageToCenter.offsetLeft;
                 }
             }
+            rescaleRequired(true);
         }
         return -dir * idx * pageSize;
     }
@@ -143,7 +149,7 @@ slider.controller = (opts = {}) => {
             setTransitionDurationStyle(duration);
         }
         const el = contentEl();
-        let newOffset = getOffset(el, idx);
+        let newOffset = getOffset(el,idx);
         setTransitionStyle(el, newOffset);
         setIndex(idx);
     };
@@ -195,13 +201,9 @@ slider.controller = (opts = {}) => {
 
     const setContentEl = (el) => {
         contentEl(el);
-        if (el.children.length > 0) {
+        if (list.length > 0) {
             updateContentSize(el);
             goCurrent(0);
-        } else {
-            setTimeout(() => {
-                setContentEl(el);
-            }, 100);
         }
     };
 
@@ -211,7 +213,7 @@ slider.controller = (opts = {}) => {
         const el = contentEl();
         const page = getPageEl(el, index());
         const delta = isVertical ? e.deltaY : e.deltaX;
-        const origin = getOffset(el, index());
+        const origin = getOffset(el,index());
         setTransitionStyle(el, delta + origin);
         e.preventDefault();
     };
@@ -259,6 +261,7 @@ slider.controller = (opts = {}) => {
         groupBy,
         updateContentSize,
         containerWidth,
+        rescaleRequired,
 
         // public interface
         index,
