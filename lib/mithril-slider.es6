@@ -95,9 +95,8 @@ slider.controller = (opts = {}) => {
 
     listQuery.then((listData) => {
         list.splice(0, 0, ...listData);
-        if (index() < 0) {
-            goTo(0,0);
-        }
+        if (index() < 0) index(0);
+        goTo(index(),0);
         m.redraw();
     });
 
