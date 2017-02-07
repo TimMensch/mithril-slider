@@ -20,8 +20,8 @@ const createView = (ctrl, opts) => {
         config: (el, inited, context) => {
             if (inited) {
                 if (ctrl.rescaleRequired()) {
-                    ctrl.goCurrent();
                     ctrl.rescaleRequired(false);
+                    ctrl.goCurrent();
                 }
                 return;
             }
