@@ -74,6 +74,7 @@ slider.controller = (opts = {}) => {
 
     let rescaleRequired = m.prop(false);
     let containerWidth = m.prop(null);
+    let finishedDrag = 0;
 
     const setIndex = (idx) => {
         const oldIndex = index();
@@ -141,6 +142,10 @@ slider.controller = (opts = {}) => {
         return -dir * idx * pageSize;
     }
     const goTo = (idx, duration) => {
+        const now = Date.now();
+        if (now - finishedDrag < 300) {
+            return;
+        }
         if (idx < 0 || idx > getLength() - 1) {
             return;
         }
@@ -247,6 +252,7 @@ slider.controller = (opts = {}) => {
         } else {
             goCurrent(duration);
         }
+        finishedDrag = Date.now();
     };
 
     return {
