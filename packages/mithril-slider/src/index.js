@@ -15,6 +15,14 @@ const view = ({state, attrs}) => {
   if (attrs.sliderController) {
     attrs.sliderController(state);
   }
+  if (state.inited) {
+    if (state.rescaleRequired) {
+      state.rescaleRequired = false;
+      state.goCurrent();
+      m.redraw();
+    }
+  }
+
   const currentIndex = state.index();
   // sizes need to be set each redraw because of screen resizes
   state.groupBy(attrs.groupBy || 1);
@@ -87,6 +95,9 @@ const oninit = vnode => {
   const pageOffsetX = attrs.pageOffsetX || DEFAULT_OFFSET_X;
   const pageOffsetY = attrs.pageOffsetY || DEFAULT_OFFSET_Y;
 
+  const centerCurrent = attrs.centerCurrent || false;
+  const containerSize = prop(0);
+
   const initWithResult = result => {
     list(result);
     // First redraw so that pages are drawn
@@ -131,6 +142,29 @@ const oninit = vnode => {
     contentEl.style["-webkit-transition-duration"] = contentEl.style["transition-duration"] = duration + "ms";
   };
 
+  const getOffset = (idx) => {
+    if (centerCurrent && idx>=0) {
+      const pageToCenter = contentEl.children[ idx ];
+      if (pageToCenter) {
+        if (containerSize() === 0) {
+          const container = contentEl.parentElement;
+          if (container) {
+            containerSize( isVertical ? container.clientHeight : container.clientWidth );
+          }
+        }
+        if (containerSize() !== 0) {
+          if (isVertical) {
+            return (containerSize() / 2 - pageToCenter.offsetHeight / 2) - pageToCenter.offsetTop;
+          } else {
+            return (containerSize() / 2 - pageToCenter.offsetWidth / 2) - pageToCenter.offsetLeft;
+          }
+        }
+      }
+      vnode.state.rescaleRequired = true;
+    }
+    return -dir * idx * pageSize;
+  }
+
   const goTo = (idx, duration) => {
     if (idx < 0 || idx > list().length - 1) {
       return;
@@ -139,7 +173,7 @@ const oninit = vnode => {
     if (duration !== undefined) {
       setTransitionDurationStyle(duration);
     }
-    setTransitionStyle(contentEl, -dir * idx * pageSize);
+    setTransitionStyle(contentEl, getOffset(idx));
     setIndex(idx);
   };
 
@@ -164,6 +198,14 @@ const oninit = vnode => {
     const page = el.childNodes[0];
     if (page.getBoundingClientRect()[prop]) {
       pageSize = page.getBoundingClientRect()[prop];
+    }
+    if (attrs.dynamicSizePages) {
+      const contentSize = [...el.childNodes].reduce(
+        (accumulator, node) =>
+          accumulator + node.getBoundingClientRect()[prop],
+        0);
+      el.style[prop] = contentSize + "px";
+    } else {
       el.style[prop] = (list().length * pageSize) + "px";
     }
   };
@@ -228,13 +270,21 @@ const oninit = vnode => {
 
   const handleDragEnd = e => {
     const dur = calculateTransitionDuration(e.velocity);
-    const delta = isVertical ? e.deltaY : e.deltaX;
+    let delta = isVertical ? e.deltaY : e.deltaX;
     if (Math.abs(delta) > pageSize * groupBy() * cancelDragFactor) {
       if (dir * delta < 0) {
-        goNext(dur);
+        while ((dir * delta) < 0) {
+          goNext(dur);
+          delta += dir * pageSize * groupBy();
+        }
       } else {
-        goPrevious(dur);
+        while ((dir * delta) > 0) {
+          goPrevious(dur);
+          delta -= dir * pageSize * groupBy();
+        }
       }
+      vnode.state.rescaleRequired = true;
+      m.redraw();
     } else {
       goCurrent(dur);
     }
@@ -243,7 +293,6 @@ const oninit = vnode => {
   Object.assign(vnode.state, {
     // component methods
     list,
-    contentEl,
     setContentEl,
     handleDrag,
     handleDragStart,

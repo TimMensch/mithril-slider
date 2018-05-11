@@ -59,6 +59,50 @@ var _extends = Object.assign || function (target) {
   return target;
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var toConsumableArray = function (arr) {
+  if (Array.isArray(arr)) {
+    for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) arr2[i] = arr[i];
+
+    return arr2;
+  } else {
+    return Array.from(arr);
+  }
+};
+
 var DEFAULT_DURATION = 160;
 var DEFAULT_CANCEL_DRAG_FACTOR = 1 / 5;
 var DEFAULT_GROUP_SIZE = 1;
@@ -74,6 +118,14 @@ var view = function view(_ref) {
   if (attrs.sliderController) {
     attrs.sliderController(state);
   }
+  if (state.inited) {
+    if (state.rescaleRequired) {
+      state.rescaleRequired = false;
+      state.goCurrent();
+      m.redraw();
+    }
+  }
+
   var currentIndex = state.index();
   // sizes need to be set each redraw because of screen resizes
   state.groupBy(attrs.groupBy || 1);
@@ -135,6 +187,9 @@ var oninit = function oninit(vnode) {
   var pageOffsetX = attrs.pageOffsetX || DEFAULT_OFFSET_X;
   var pageOffsetY = attrs.pageOffsetY || DEFAULT_OFFSET_Y;
 
+  var centerCurrent = attrs.centerCurrent || false;
+  var containerSize = prop(0);
+
   var initWithResult = function initWithResult(result) {
     list(result);
     // First redraw so that pages are drawn
@@ -181,6 +236,29 @@ var oninit = function oninit(vnode) {
     contentEl.style["-webkit-transition-duration"] = contentEl.style["transition-duration"] = duration + "ms";
   };
 
+  var getOffset = function getOffset(idx) {
+    if (centerCurrent && idx >= 0) {
+      var pageToCenter = contentEl.children[idx];
+      if (pageToCenter) {
+        if (containerSize() === 0) {
+          var container = contentEl.parentElement;
+          if (container) {
+            containerSize(isVertical ? container.clientHeight : container.clientWidth);
+          }
+        }
+        if (containerSize() !== 0) {
+          if (isVertical) {
+            return containerSize() / 2 - pageToCenter.offsetHeight / 2 - pageToCenter.offsetTop;
+          } else {
+            return containerSize() / 2 - pageToCenter.offsetWidth / 2 - pageToCenter.offsetLeft;
+          }
+        }
+      }
+      vnode.state.rescaleRequired = true;
+    }
+    return -dir * idx * pageSize;
+  };
+
   var goTo = function goTo(idx, duration) {
     if (idx < 0 || idx > list().length - 1) {
       return;
@@ -189,7 +267,7 @@ var oninit = function oninit(vnode) {
     if (duration !== undefined) {
       setTransitionDurationStyle(duration);
     }
-    setTransitionStyle(contentEl, -dir * idx * pageSize);
+    setTransitionStyle(contentEl, getOffset(idx));
     setIndex(idx);
   };
 
@@ -216,6 +294,13 @@ var oninit = function oninit(vnode) {
     var page = el.childNodes[0];
     if (page.getBoundingClientRect()[prop$$1]) {
       pageSize = page.getBoundingClientRect()[prop$$1];
+    }
+    if (attrs.dynamicSizePages) {
+      var contentSize = [].concat(toConsumableArray(el.childNodes)).reduce(function (accumulator, node) {
+        return accumulator + node.getBoundingClientRect()[prop$$1];
+      }, 0);
+      el.style[prop$$1] = contentSize + "px";
+    } else {
       el.style[prop$$1] = list().length * pageSize + "px";
     }
   };
@@ -282,10 +367,18 @@ var oninit = function oninit(vnode) {
     var delta = isVertical ? e.deltaY : e.deltaX;
     if (Math.abs(delta) > pageSize * groupBy() * cancelDragFactor) {
       if (dir * delta < 0) {
-        goNext(dur);
+        while (dir * delta < 0) {
+          goNext(dur);
+          delta += dir * pageSize * groupBy();
+        }
       } else {
-        goPrevious(dur);
+        while (dir * delta > 0) {
+          goPrevious(dur);
+          delta -= dir * pageSize * groupBy();
+        }
       }
+      vnode.state.rescaleRequired = true;
+      m.redraw();
     } else {
       goCurrent(dur);
     }
