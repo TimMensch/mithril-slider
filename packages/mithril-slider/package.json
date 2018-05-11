@@ -6,8 +6,8 @@
   "description": "Content Slider for Mithril on mobile and desktop",
   "scripts": {
     "build": "npm run build-main && npm run build-css",
-    "build-main": "DEPS=0 ../../node_modules/rollup/bin/rollup -c ../../scripts/rollup.umd.js && DEPS=0 ../../node_modules/rollup/bin/rollup -c ../../scripts/rollup.es.js",
-    "build-css": "BABEL_ENV=test ../../node_modules/babel-cli/bin/babel-node.js scripts/build-css.js > dist/mithril-slider.css"
+    "build-main": "env DEPS=0 ../../node_modules/rollup/bin/rollup -c ../../scripts/rollup.umd.js && env DEPS=0 ../../node_modules/rollup/bin/rollup -c ../../scripts/rollup.es.js",
+    "build-css": "env BABEL_ENV=test ../../node_modules/babel-cli/bin/babel-node.js scripts/build-css.js > dist/mithril-slider.css"
   },
   "dependencies": {
     "hammerjs": "^2.0.8",
