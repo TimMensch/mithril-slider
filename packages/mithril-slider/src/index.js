@@ -97,6 +97,7 @@ const oninit = vnode => {
 
   const centerCurrent = attrs.centerCurrent || false;
   const containerSize = prop(0);
+  let finishedDrag = 0;
 
   const initWithResult = result => {
     list(result);
@@ -147,9 +148,13 @@ const oninit = vnode => {
       const pageToCenter = contentEl.children[ idx ];
       if (pageToCenter) {
         if (containerSize() === 0) {
-          const container = contentEl.parentElement;
-          if (container) {
-            containerSize( isVertical ? container.clientHeight : container.clientWidth );
+          // The mithril-slider element
+          const mithrilSlider = contentEl.parentElement;
+          if (mithrilSlider) {
+            const container = mithrilSlider.parentElement;
+            if (container) {
+              containerSize( isVertical ? container.clientHeight : container.clientWidth );
+            }
           }
         }
         if (containerSize() !== 0) {
@@ -166,6 +171,13 @@ const oninit = vnode => {
   }
 
   const goTo = (idx, duration) => {
+    // Prevent a "goTo" within 300ms of a drag completion
+    // Otherwise the drag can trigger a click event that
+    // selects the wrong item.
+    const now = Date.now();
+    if (now - finishedDrag < 300) {
+      return;
+    }
     if (idx < 0 || idx > list().length - 1) {
       return;
     }
@@ -243,16 +255,11 @@ const oninit = vnode => {
 
   const handleDrag = e => {
     const el = contentEl;
-    const page = getPageEl(el, index());
     const delta = isVertical
       ? e.deltaY + pageOffsetY
       : e.deltaX + pageOffsetX;
-    const origin = isVertical
-      ? page.offsetTop
-      : dir === -1
-        ? page.offsetLeft - page.parentNode.clientWidth + page.clientWidth
-        : page.offsetLeft;
-    setTransitionStyle(el, delta - origin);
+    const origin = getOffset(index());
+    setTransitionStyle(el, delta + origin);
     e.preventDefault();
   };
 
@@ -288,6 +295,7 @@ const oninit = vnode => {
     } else {
       goCurrent(dur);
     }
+    finishedDrag = Date.now();
   };
 
   Object.assign(vnode.state, {

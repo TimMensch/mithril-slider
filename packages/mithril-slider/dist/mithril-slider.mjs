@@ -189,6 +189,7 @@ var oninit = function oninit(vnode) {
 
   var centerCurrent = attrs.centerCurrent || false;
   var containerSize = prop(0);
+  var finishedDrag = 0;
 
   var initWithResult = function initWithResult(result) {
     list(result);
@@ -241,9 +242,13 @@ var oninit = function oninit(vnode) {
       var pageToCenter = contentEl.children[idx];
       if (pageToCenter) {
         if (containerSize() === 0) {
-          var container = contentEl.parentElement;
-          if (container) {
-            containerSize(isVertical ? container.clientHeight : container.clientWidth);
+          // The mithril-slider element
+          var mithrilSlider = contentEl.parentElement;
+          if (mithrilSlider) {
+            var container = mithrilSlider.parentElement;
+            if (container) {
+              containerSize(isVertical ? container.clientHeight : container.clientWidth);
+            }
           }
         }
         if (containerSize() !== 0) {
@@ -260,6 +265,13 @@ var oninit = function oninit(vnode) {
   };
 
   var goTo = function goTo(idx, duration) {
+    // Prevent a "goTo" within 300ms of a drag completion
+    // Otherwise the drag can trigger a click event that
+    // selects the wrong item.
+    var now = Date.now();
+    if (now - finishedDrag < 300) {
+      return;
+    }
     if (idx < 0 || idx > list().length - 1) {
       return;
     }
@@ -343,10 +355,9 @@ var oninit = function oninit(vnode) {
 
   var handleDrag = function handleDrag(e) {
     var el = contentEl;
-    var page = getPageEl(el, index());
     var delta = isVertical ? e.deltaY + pageOffsetY : e.deltaX + pageOffsetX;
-    var origin = isVertical ? page.offsetTop : dir === -1 ? page.offsetLeft - page.parentNode.clientWidth + page.clientWidth : page.offsetLeft;
-    setTransitionStyle(el, delta - origin);
+    var origin = getOffset(index());
+    setTransitionStyle(el, delta + origin);
     e.preventDefault();
   };
 
@@ -382,12 +393,12 @@ var oninit = function oninit(vnode) {
     } else {
       goCurrent(dur);
     }
+    finishedDrag = Date.now();
   };
 
   _extends(vnode.state, {
     // component methods
     list: list,
-    contentEl: contentEl,
     setContentEl: setContentEl,
     handleDrag: handleDrag,
     handleDragStart: handleDragStart,
